@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "amazonreportviolationsubmitter",
+  "private_key_id": "9a9d37355d97c12832c92b6787a80b91d03457d5",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC+NiBWF0PPY0vh\nJF3b0KWGw5Tl3LitnO1VviiWrRMqPtTqdI6tQ7Yl6+JI+nhCv3i/1U4R9RVbb+5R\n7437vQE/KsLaBC8ieX/qZZ5wblRE3217X3aSBvWSylQhtLl0Qe7zyfYr4z5BPues\nzNo0mFG9gp9PvtZAJshJ0WBqpj25z0vxvvCwt3jl78I65psr7oZJOxdP+UW9g+WK\n107oBT8jorcG1W8TVsXcleB/FXAe6I5PJqMpLj1exOoJIQuHEWEPaS144XEUOzDr\nXgTE+u0jVyXE9WW7i1e08xf0xxIdEaDxPLuVY7Mn4DdE70HcjwaUxQmqV1YrEAcD\n2G4WYYztAgMBAAECggEAC5+5KCmxzimuSGr1hWphwzOOlOGBM7LkWhoN1u9qvWkr\nj8xhr7r0laqtoHIWCVY0Jdz+MWC91mGnucAe+CRbwCV31OTukHfGVmexYAOOCMty\noFh8IX5lYXwV2h12O+GPnbxY2+O+OTSD6e5240HvtNoXrELoSvFTyhcOglX4bbNf\nYoz0YFgrUQAAIULPcpZi2OSC08b6SsCWM1E1BUcIx+scldD/g2I8ZVRxsU1C9JpS\nonpbKidNFfmRFllRr47Mbc9ZTJmgjxCh4ZRdlXqXBQW8kJzrf+rQLFIRzuDJriJY\nRMi4Gnui3IQu7Iz0aibJGaH/X/k9lQ8xNFbtggSsrQKBgQDf3CH3lLOvuNH571cM\nfUViiPkdZSpX4CTYQZmYPwGZz3UGDHNwwg+RRnZowoa1hn895SB/YSl9jYJTNU74\nX4xeZc3bDrfUs2Odad6G7XjbkDFDGC3vmFtR1kUULDsoTw+Cytm6jQ4LRfSn7AEA\nHGxnTLlwCBGXKqDXrgpH61BWWwKBgQDZhUKH40hkz5S6ujXVCGpHRdPseb8CNWWj\ngSUlh9YRKkD2hxj5wTfg8Vjd1Uwr7zJ0mw0hQYA6RUwb+ndetz6y+qvvJml09ZJr\nB+f9kGr2LYfWYUIuTTod1NIOt5HSepdIEsOYMNAKcAL9kAmd6qEanteyTxKzy+gK\ne7ORbfrcVwKBgCwzPtGvnrr3dx4uT7W7llOaT/Wp3+5x51R7v2P8LMi92ZFULAb7\nii9ZBlAw+IAnCkCiWQRNnu+XXUAoqmsIEqMg3sB963Yn5WdTXAiwIsjXc6KXx5oj\nLwS9le4hvZx738gnXU4kQ72eFmyBgMEQ26aZ05N3RGHgnNl5F7aTk805AoGANd/z\nooSAobdoNvd37dOvvwdkfeWJkZp4Gg8ajDkgpA+7F1ROs01P8b7VK9xwiVEtRgRB\nNENs5wHS3/shJaxtMxczDoCNDhLkuO20X/EtDNwqEMb2BVHLWygi/tIoo+EJJyi+\nmSs929fyZasPNrWuQVGmStua3j1as33/870xrPECgYB3p/qSogZakN/XTa+pzbdN\nafGPpGBnZ1t7H3jWTXo1lWTxocu/MRUeYuuGnflW4cIQyIg1TWAAJfQ2rfKt8V97\nVdfxpYY11FO6udF1tkWrB90m5JIC7Kujbiem2ayKgV53FooAj/5Yw1443VYgbjti\nDJlhHjuXJVEfOWxtOK6BXQ==\n-----END PRIVATE KEY-----\n",
+  "client_email": "crivatzsheetsrobot@amazonreportviolationsubmitter.iam.gserviceaccount.com",
+  "client_id": "111185029312702825051",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/crivatzsheetsrobot%40amazonreportviolationsubmitter.iam.gserviceaccount.com"
+}

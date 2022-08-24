@@ -1,0 +1,16 @@
+{
+  "name": "amazon_report_violation_submitter",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "test"
+  },
+  "author": "crivatz",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.0.1",
+    "google-spreadsheet": "^3.3.0",
+    "zombie": "^6.1.4"
+  }
+}
