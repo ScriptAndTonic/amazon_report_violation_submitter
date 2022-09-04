@@ -11,6 +11,8 @@
   "dependencies": {
     "dotenv": "^16.0.1",
     "google-spreadsheet": "^3.3.0",
-    "zombie": "^6.1.4"
+    "puppeteer": "^16.2.0",
+    "puppeteer-extra": "^3.3.4",
+    "puppeteer-extra-plugin-repl": "^2.3.2"
   }
 }

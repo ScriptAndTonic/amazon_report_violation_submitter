@@ -1,6 +1,12 @@
 require('dotenv').config();
+const fs = require('fs');
+const cookiesFilePath = 'cookies.json';
+const puppeteer = require('puppeteer-extra');
+puppeteer.use(require('puppeteer-extra-plugin-repl')());
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const creds = require('./config/googleApiKey.json');
+var readline = require('readline');
+var rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: false });
 
 const run = async () => {
   const gdoc = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
@@ -9,7 +15,7 @@ const run = async () => {
   await gdoc.loadInfo();
   console.log(`Loaded ${gdoc.title}`);
 
-  const sheet = gdoc.sheetsByTitle['PENTRU ANDREI'];
+  const sheet = gdoc.sheetsByTitle[process.env.SPREADSHEET_SHEET_NAME];
   console.log(`Loaded ${sheet.title}`);
 
   const allRows = await sheet.getRows();
@@ -17,6 +23,9 @@ const run = async () => {
 
   const rowsToProcess = allRows.filter((r) => r.Status === 'Process');
   console.log(`${rowsToProcess.length} rows to process`);
+
+  const browserPage = await launchBrowserSession();
+  console.log('Browser launched');
 
   for (let index = 0; index < rowsToProcess.length; index++) {
     const row = rowsToProcess[index];
@@ -45,7 +54,8 @@ const run = async () => {
     Date of the review as it appears on our website: ${date}
     Direct link to the review or post (click the 'Comments' link after the review, and copy or paste the URL that displays in your web browser): ${url}
     Required action: ${violation}`;
-      console.log('\x1b[36m%s\x1b[0m', body);
+
+      await submitAmazonViolation(browserPage, body);
       row.Status = 'Completed';
     } catch (error) {
       row.Status = 'Failed';
@@ -55,4 +65,127 @@ const run = async () => {
   }
 };
 
+const launchBrowserSession = async () => {
+  const browser = await puppeteer.launch({ headless: false });
+  const page = await browser.newPage();
+  await loadCookies(page);
+  await page.setViewport({ width: 1280, height: 1200 });
+  return page;
+};
+
+const submitAmazonViolation = async (page, violationText) => {
+  await page.goto(process.env.AMAZON_SELLER_REPORT_URL);
+  const needsLogin = await page.$('span#auth-signin-cancel-link');
+  if (needsLogin) {
+    await logInToAmazonSeller(page);
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  await page.goto(process.env.AMAZON_SELLER_REPORT_IFRAME_URL);
+  await new Promise((r) => setTimeout(r, 2000));
+  await repeatTab(page, 2);
+  await clearInput(page, '#root > div > form > div > div.hill-primary-input-container > div > kat-textarea');
+  await page.keyboard.type(violationText);
+
+  await repeatTab(page, 8);
+};
+
+const testPuppeteer = async () => {
+  const browser = await puppeteer.launch({ headless: false });
+  const page = await browser.newPage();
+  await loadCookies(page);
+  await page.setViewport({ width: 1280, height: 800 });
+  await page.goto(process.env.AMAZON_SELLER_REPORT_URL);
+  const needsLogin = await page.$('span#auth-signin-cancel-link');
+  if (needsLogin) {
+    await logInToAmazonSeller(page);
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  await page.goto(process.env.AMAZON_SELLER_REPORT_IFRAME_URL);
+  await new Promise((r) => setTimeout(r, 2000));
+  console.log('At Violation Report page');
+  await repeatTab(page, 2);
+  await clearInput(page, '#root > div > form > div > div.hill-primary-input-container > div > kat-textarea');
+  await page.keyboard.type('TESTTT');
+
+  await repeatTab(page, 6);
+  await new Promise((resolve) => {
+    rl.question('Exit? ', resolve);
+  });
+  await browser.close();
+};
+
+const logInToAmazonSeller = async (page) => {
+  await page.type('input#ap_email', process.env.AMAZON_SELLER_EMAIL);
+  await page.type('input#ap_password', process.env.AMAZON_SELLER_PASSWORD);
+  const rememberMeCheckbox = await page.$('input[type=checkbox]');
+  const rememberMeIsChecked = await (await rememberMeCheckbox.getProperty('checked')).jsonValue();
+  if (!rememberMeIsChecked) {
+    await rememberMeCheckbox.click();
+  }
+  await page.click('input#signInSubmit');
+  await page.waitForSelector('input#auth-mfa-otpcode');
+
+  const noOtpOnThisBrowserCheckbox = await page.$('input#auth-mfa-remember-device');
+  const noOtpOnThisBrowserChecked = await (await noOtpOnThisBrowserCheckbox.getProperty('checked')).jsonValue();
+  if (!noOtpOnThisBrowserChecked) {
+    await noOtpOnThisBrowserCheckbox.click();
+  }
+  const otp = await new Promise((resolve) => {
+    rl.question('Please enter OTP code: ', resolve);
+  });
+
+  await page.type('input#auth-mfa-otpcode', otp);
+  await page.click('input#auth-signin-button');
+
+  await page.waitForSelector('div#picker-container');
+  await new Promise((r) => setTimeout(r, 3000));
+  const [unitedStatesButton] = await page.$x("//button[contains(., 'United States')]");
+  await unitedStatesButton.click();
+  await new Promise((r) => setTimeout(r, 1000));
+  await page.click('button.picker-switch-accounts-button');
+  await new Promise((r) => setTimeout(r, 1000));
+
+  const cookiesObject = await page.cookies();
+  saveCookies(cookiesObject);
+};
+
+const clearInput = async (page, selector) => {
+  const value = await page.$eval(selector, (el) => el.value || el.innerText || '');
+  await page.focus(selector);
+  for (let i = 0; i < value.length; i++) {
+    await page.keyboard.press('Backspace');
+  }
+};
+
+const saveCookies = (cookiesObject) => {
+  fs.writeFile(cookiesFilePath, JSON.stringify(cookiesObject), (err) => {
+    if (err) {
+      console.log('The file could not be written.', err);
+    }
+    console.log('Session has been successfully saved');
+  });
+};
+
+const loadCookies = async (page) => {
+  const previousSession = fs.existsSync(cookiesFilePath);
+  if (previousSession) {
+    const cookiesString = fs.readFileSync(cookiesFilePath);
+    const parsedCookies = JSON.parse(cookiesString);
+    if (parsedCookies.length !== 0) {
+      for (let cookie of parsedCookies) {
+        await page.setCookie(cookie);
+      }
+      console.log('Session has been loaded in the browser');
+    }
+  }
+};
+
+const repeatTab = async (page, count) => {
+  for (let index = 0; index < count; index++) {
+    await page.keyboard.press('Tab');
+    await new Promise((r) => setTimeout(r, 200));
+  }
+};
+
 run();
+// testPuppeteer();
