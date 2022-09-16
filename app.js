@@ -13,16 +13,21 @@ const run = async () => {
   await gdoc.useServiceAccountAuth(creds);
 
   await gdoc.loadInfo();
-  console.log(`Loaded ${gdoc.title}`);
+  console.log(`Loaded ${gdoc.title} gdoc`);
 
   const sheet = gdoc.sheetsByTitle[process.env.SPREADSHEET_SHEET_NAME];
-  console.log(`Loaded ${sheet.title}`);
+  console.log(`Loaded ${sheet.title} sheet`);
 
   const allRows = await sheet.getRows();
   console.log(`Loaded ${allRows.length} rows`);
 
   const rowsToProcess = allRows.filter((r) => r.Status === 'Process');
-  console.log(`${rowsToProcess.length} rows to process`);
+  if (rowsToProcess.length > 0) {
+    console.log(`${rowsToProcess.length} rows to process`);
+  } else {
+    console.log('Nothing to process, exiting...');
+    process.exit(0);
+  }
 
   const browserPage = await launchBrowserSession();
   console.log('Browser launched');
@@ -48,17 +53,18 @@ const run = async () => {
         }
       }
 
-      const body = `ASIN or ISBN of the product: ${itemID}
-    Title of the review: ${title}
-    Name of the reviewer: ${author}
-    Date of the review as it appears on our website: ${date}
-    Direct link to the review or post (click the 'Comments' link after the review, and copy or paste the URL that displays in your web browser): ${url}
-    Required action: ${violation}`;
+      const body = `ASIN or ISBN of the product: ${itemID}\nTitle of the review: ${title}\nName of the reviewer: ${author}\nDate of the review as it appears on our website: ${date}\nDirect link to the review or post (click the 'Comments' link after the review, and copy or paste the URL that displays in your web browser): ${url}\nRequired action: ${violation}`;
 
-      await submitAmazonViolation(browserPage, body);
-      row.Status = 'Completed';
+      const caseId = await submitAmazonViolation(browserPage, body);
+
+      if (!process.env.NO_COMMIT === 'TRUE') {
+        row.Status = 'Completed';
+      }
     } catch (error) {
-      row.Status = 'Failed';
+      console.error(error);
+      if (!process.env.NO_COMMIT === 'TRUE') {
+        row.Status = 'Failed';
+      }
     } finally {
       await row.save();
     }
@@ -68,6 +74,7 @@ const run = async () => {
 const launchBrowserSession = async () => {
   const browser = await puppeteer.launch({ headless: false });
   const page = await browser.newPage();
+  browser.set;
   await loadCookies(page);
   await page.setViewport({ width: 1280, height: 1200 });
   return page;
@@ -79,43 +86,37 @@ const submitAmazonViolation = async (page, violationText) => {
   if (needsLogin) {
     await logInToAmazonSeller(page);
     await new Promise((r) => setTimeout(r, 2000));
+  } else {
+    console.log('Already logged in');
   }
   await page.goto(process.env.AMAZON_SELLER_REPORT_IFRAME_URL);
   await new Promise((r) => setTimeout(r, 2000));
+  await page.waitForSelector('[text="Short description"]');
   await repeatTab(page, 2);
   await clearInput(page, '#root > div > form > div > div.hill-primary-input-container > div > kat-textarea');
   await page.keyboard.type(violationText);
 
   await repeatTab(page, 8);
-};
 
-const testPuppeteer = async () => {
-  const browser = await puppeteer.launch({ headless: false });
-  const page = await browser.newPage();
-  await loadCookies(page);
-  await page.setViewport({ width: 1280, height: 800 });
-  await page.goto(process.env.AMAZON_SELLER_REPORT_URL);
-  const needsLogin = await page.$('span#auth-signin-cancel-link');
-  if (needsLogin) {
-    await logInToAmazonSeller(page);
-    await new Promise((r) => setTimeout(r, 2000));
+  if (!process.env.NO_COMMIT === 'TRUE') {
+    // await page.keyboard.press('Enter');
+    console.log('Violation Report Submitted');
+  } else {
+    console.log('Did not save Violation');
   }
-  await page.goto(process.env.AMAZON_SELLER_REPORT_IFRAME_URL);
   await new Promise((r) => setTimeout(r, 2000));
-  console.log('At Violation Report page');
-  await repeatTab(page, 2);
-  await clearInput(page, '#root > div > form > div > div.hill-primary-input-container > div > kat-textarea');
-  await page.keyboard.type('TESTTT');
+  await page.goto(process.env.AMAZON_SELLER_CASE_LOG_URL);
+  const caseRowId = await page.evaluate(() => document.querySelector('tr[id^="case_row"]').id);
+  const caseId = caseRowId.replace('case_row_', '');
+  console.log(`Case ID: ${caseId}`);
 
-  await repeatTab(page, 6);
-  await new Promise((resolve) => {
-    rl.question('Exit? ', resolve);
-  });
-  await browser.close();
+  return caseId;
 };
 
 const logInToAmazonSeller = async (page) => {
-  await page.type('input#ap_email', process.env.AMAZON_SELLER_EMAIL);
+  if (await page.$('input#ap_email')) {
+    await page.type('input#ap_email', process.env.AMAZON_SELLER_EMAIL);
+  }
   await page.type('input#ap_password', process.env.AMAZON_SELLER_PASSWORD);
   const rememberMeCheckbox = await page.$('input[type=checkbox]');
   const rememberMeIsChecked = await (await rememberMeCheckbox.getProperty('checked')).jsonValue();
@@ -123,19 +124,20 @@ const logInToAmazonSeller = async (page) => {
     await rememberMeCheckbox.click();
   }
   await page.click('input#signInSubmit');
-  await page.waitForSelector('input#auth-mfa-otpcode');
+  await new Promise((r) => setTimeout(r, 3000));
+  if (await page.$('input#auth-mfa-otpcode')) {
+    const noOtpOnThisBrowserCheckbox = await page.$('input#auth-mfa-remember-device');
+    const noOtpOnThisBrowserChecked = await (await noOtpOnThisBrowserCheckbox.getProperty('checked')).jsonValue();
+    if (!noOtpOnThisBrowserChecked) {
+      await noOtpOnThisBrowserCheckbox.click();
+    }
+    const otp = await new Promise((resolve) => {
+      rl.question('Please enter OTP code: ', resolve);
+    });
 
-  const noOtpOnThisBrowserCheckbox = await page.$('input#auth-mfa-remember-device');
-  const noOtpOnThisBrowserChecked = await (await noOtpOnThisBrowserCheckbox.getProperty('checked')).jsonValue();
-  if (!noOtpOnThisBrowserChecked) {
-    await noOtpOnThisBrowserCheckbox.click();
+    await page.type('input#auth-mfa-otpcode', otp);
+    await page.click('input#auth-signin-button');
   }
-  const otp = await new Promise((resolve) => {
-    rl.question('Please enter OTP code: ', resolve);
-  });
-
-  await page.type('input#auth-mfa-otpcode', otp);
-  await page.click('input#auth-signin-button');
 
   await page.waitForSelector('div#picker-container');
   await new Promise((r) => setTimeout(r, 3000));
