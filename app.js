@@ -7,6 +7,15 @@ const { GoogleSpreadsheet } = require('google-spreadsheet');
 const creds = require('./config/googleApiKey.json');
 var readline = require('readline');
 var rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: false });
+const nodemailer = require('nodemailer');
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 465,
+  auth: {
+    user: process.env.GMAIL_USERNAME,
+    pass: process.env.GMAIL_PASS,
+  },
+});
 
 const run = async () => {
   const gdoc = new GoogleSpreadsheet(process.env.SPREADSHEET_ID);
@@ -35,6 +44,7 @@ const run = async () => {
   for (let index = 0; index < rowsToProcess.length; index++) {
     const row = rowsToProcess[index];
     try {
+      let lastExistingViolationIndex = 0;
       const title = row.Title;
       console.log(`---> Processing row: ${title};`);
       const date = row.Date;
@@ -46,7 +56,7 @@ const run = async () => {
       for (let index = 1; index <= 7; index++) {
         const violationCell = row['Violation ' + index];
         if (violationCell === null || violationCell.trim() === '') {
-          const lastExistingViolationIndex = index - 1;
+          lastExistingViolationIndex = index - 1;
           violation = row['Violation ' + lastExistingViolationIndex];
           console.log(`Selected Violation ${lastExistingViolationIndex}`);
           break;
@@ -56,19 +66,48 @@ const run = async () => {
       const body = `ASIN or ISBN of the product: ${itemID}\nTitle of the review: ${title}\nName of the reviewer: ${author}\nDate of the review as it appears on our website: ${date}\nDirect link to the review or post (click the 'Comments' link after the review, and copy or paste the URL that displays in your web browser): ${url}\nRequired action: ${violation}`;
 
       const caseId = await submitAmazonViolation(browserPage, body);
+      await reportViolation(browserPage, url);
+      await sendViolationEmail(body);
 
-      if (!process.env.NO_COMMIT === 'TRUE') {
+      if (process.env.NO_COMMIT === 'FALSE') {
+        row[`Violation ${lastExistingViolationIndex}`] = body;
+        row[`Case ID ${lastExistingViolationIndex}`] = caseId;
         row.Status = 'Completed';
       }
     } catch (error) {
       console.error(error);
-      if (!process.env.NO_COMMIT === 'TRUE') {
+      if (process.env.NO_COMMIT === 'FALSE') {
         row.Status = 'Failed';
       }
     } finally {
       await row.save();
     }
+    console.log(`Throttling for ${process.env.THROTTLE_SECONDS} seconds`);
+    await new Promise((r) => setTimeout(r, process.env.THROTTLE_SECONDS * 1000));
   }
+  console.log('Process finished, exiting...');
+  process.exit();
+};
+
+const sendViolationEmail = async (body) => {
+  await transporter.sendMail({
+    from: process.env.GMAIL_USERNAME,
+    to: process.env.SEND_VIOLATION_EMAIL_TO,
+    subject: 'Review Violation',
+    text: body,
+  });
+};
+
+const reportViolation = async (page, url) => {
+  await page.goto(url);
+  const popupPromise = new Promise((x) => page.once('popup', x));
+  await page.click('.report-abuse-link');
+  const popup = await popupPromise;
+  if (process.env.NO_COMMIT === 'FALSE') {
+    await popup.click('.a-button-primary');
+  }
+  await popup.close();
+  console.log('Violation reported');
 };
 
 const launchBrowserSession = async () => {
@@ -98,13 +137,13 @@ const submitAmazonViolation = async (page, violationText) => {
 
   await repeatTab(page, 8);
 
-  if (!process.env.NO_COMMIT === 'TRUE') {
-    // await page.keyboard.press('Enter');
+  if (process.env.NO_COMMIT === 'FALSE') {
+    await page.keyboard.press('Enter');
     console.log('Violation Report Submitted');
   } else {
     console.log('Did not save Violation');
   }
-  await new Promise((r) => setTimeout(r, 2000));
+  await new Promise((r) => setTimeout(r, 10000));
   await page.goto(process.env.AMAZON_SELLER_CASE_LOG_URL);
   const caseRowId = await page.evaluate(() => document.querySelector('tr[id^="case_row"]').id);
   const caseId = caseRowId.replace('case_row_', '');
