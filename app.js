@@ -177,4 +177,3 @@ const repeatTab = async (page, count) => {
 };
 
 run();
-// testPuppeteer();
