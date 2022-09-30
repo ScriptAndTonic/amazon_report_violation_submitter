@@ -118,13 +118,6 @@ const submitAmazonViolation = async (page, violationText) => {
   console.log('Waiting to pass login...');
   await page.waitForSelector('div.hh-title', { visible: true, timeout: 60000 });
   console.log('Passed login');
-  // const needsLogin = await page.$('span#auth-signin-cancel-link');
-  // if (needsLogin) {
-  //   await logInToAmazonSeller(page);
-  //   await new Promise((r) => setTimeout(r, 2000));
-  // } else {
-  //   console.log('Already logged in');
-  // }
   await page.goto(process.env.AMAZON_SELLER_REPORT_IFRAME_URL);
   await new Promise((r) => setTimeout(r, 2000));
   await page.waitForSelector('[text="Short description"]');
@@ -144,44 +137,6 @@ const submitAmazonViolation = async (page, violationText) => {
 
   return caseId;
 };
-
-// const logInToAmazonSeller = async (page) => {
-//   if (await page.$('input#ap_email')) {
-//     await page.type('input#ap_email', process.env.AMAZON_SELLER_EMAIL);
-//   }
-//   await page.type('input#ap_password', process.env.AMAZON_SELLER_PASSWORD);
-//   const rememberMeCheckbox = await page.$('input[type=checkbox]');
-//   const rememberMeIsChecked = await (await rememberMeCheckbox.getProperty('checked')).jsonValue();
-//   if (!rememberMeIsChecked) {
-//     await rememberMeCheckbox.click();
-//   }
-//   await page.click('input#signInSubmit');
-//   await new Promise((r) => setTimeout(r, 3000));
-//   if (await page.$('input#auth-mfa-otpcode')) {
-//     const noOtpOnThisBrowserCheckbox = await page.$('input#auth-mfa-remember-device');
-//     const noOtpOnThisBrowserChecked = await (await noOtpOnThisBrowserCheckbox.getProperty('checked')).jsonValue();
-//     if (!noOtpOnThisBrowserChecked) {
-//       await noOtpOnThisBrowserCheckbox.click();
-//     }
-//     const otp = await new Promise((resolve) => {
-//       rl.question('Please enter OTP code: ', resolve);
-//     });
-
-//     await page.type('input#auth-mfa-otpcode', otp);
-//     await page.click('input#auth-signin-button');
-//   }
-
-//   await page.waitForSelector('div#picker-container');
-//   await new Promise((r) => setTimeout(r, 3000));
-//   const [unitedStatesButton] = await page.$x("//button[contains(., 'United States')]");
-//   await unitedStatesButton.click();
-//   await new Promise((r) => setTimeout(r, 1000));
-//   await page.click('button.picker-switch-accounts-button');
-//   await new Promise((r) => setTimeout(r, 1000));
-
-//   const cookiesObject = await page.cookies();
-//   saveCookies(cookiesObject);
-// };
 
 const clearInput = async (page, selector) => {
   const value = await page.$eval(selector, (el) => el.value || el.innerText || '');
