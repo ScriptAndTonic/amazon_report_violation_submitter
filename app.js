@@ -105,6 +105,7 @@ const reportViolation = async (page, url) => {
   await page.click('.report-abuse-link');
   const popup = await popupPromise;
   await popup.click('.a-button-primary');
+  await new Promise((r) => setTimeout(r, 5000));
   await popup.close();
   console.log('Violation reported');
 };
@@ -112,7 +113,6 @@ const reportViolation = async (page, url) => {
 const launchBrowserSession = async () => {
   const browser = await puppeteer.launch({ headless: false });
   const page = await browser.newPage();
-  browser.set;
   await loadCookies(page);
   await page.setViewport({ width: 1280, height: 1200 });
   return page;
