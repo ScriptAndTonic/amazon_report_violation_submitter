@@ -67,7 +67,7 @@ const run = async () => {
 
       const caseId = await submitAmazonViolation(browserPage, body);
       await reportViolation(browserPage, url);
-      await sendViolationEmail(body);
+      await sendViolationEmails(body);
       row[`Violation ${lastExistingViolationIndex}`] = body;
       row[`Case ID ${lastExistingViolationIndex}`] = caseId;
       row.Status = 'Completed';
@@ -84,10 +84,16 @@ const run = async () => {
   process.exit();
 };
 
-const sendViolationEmail = async (body) => {
+const sendViolationEmails = async (body) => {
   await transporter.sendMail({
     from: process.env.GMAIL_USERNAME,
     to: process.env.SEND_VIOLATION_EMAIL_TO,
+    subject: 'Review Violation',
+    text: body,
+  });
+  await transporter.sendMail({
+    from: process.env.GMAIL_USERNAME,
+    to: process.env.SEND_VIOLATION_EMAIL_TO2,
     subject: 'Review Violation',
     text: body,
   });
