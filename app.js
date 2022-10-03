@@ -124,7 +124,7 @@ const submitAmazonViolation = async (page, violationText) => {
   console.log('Waiting to pass login...');
   await page.waitForSelector('div.hh-title', { visible: true, timeout: 60000 });
   console.log('Passed login');
-  saveCookies();
+  saveCookies(await page.cookies());
   await page.goto(process.env.AMAZON_SELLER_REPORT_IFRAME_URL);
   await new Promise((r) => setTimeout(r, 2000));
   await page.waitForSelector('[text="Short description"]');
