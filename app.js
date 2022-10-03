@@ -55,7 +55,7 @@ const run = async () => {
 
       for (let index = 1; index <= 7; index++) {
         const violationCell = row['Violation ' + index];
-        if (violationCell === null || violationCell.trim() === '') {
+        if (!violationCell || violationCell.trim() === '') {
           lastExistingViolationIndex = index - 1;
           violation = row['Violation ' + lastExistingViolationIndex];
           console.log(`Selected Violation ${lastExistingViolationIndex}`);
