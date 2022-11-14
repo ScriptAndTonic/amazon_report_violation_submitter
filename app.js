@@ -138,8 +138,8 @@ const submitAmazonViolation = async (page, violationText) => {
   console.log('Violation Report Submitted');
   await new Promise((r) => setTimeout(r, 10000));
   await page.goto(process.env.AMAZON_SELLER_CASE_LOG_URL);
-  const caseRowId = await page.evaluate(() => document.querySelector('tr[id^="case_row"]').id);
-  const caseId = caseRowId.replace('case_row_', '');
+  await new Promise((r) => setTimeout(r, 2000));
+  const caseId = await page.evaluate(() => document.querySelector('td.hill-case-lobby-search-results-panel-caseId').textContent);
   console.log(`Case ID: ${caseId}`);
 
   return caseId;
